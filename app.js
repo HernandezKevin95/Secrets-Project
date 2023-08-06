@@ -3,6 +3,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import mongoose from "mongoose";
 import "dotenv/config";
+import md5 from "md5";
 
 const app = express();
 const port = 3000;
@@ -19,10 +20,10 @@ mongoose.connect(
   { useNewUrlParser: true }
 );
 
-const userSchema = {
+const userSchema = new mongoose.Schema({
   email: String,
   password: String,
-};
+});
 
 const User = new mongoose.model("User", userSchema);
 
@@ -41,12 +42,29 @@ app.get("/register", (req, res) => {
 app.post("/register", (req, res) => {
   const newUser = new User({
     email: req.body.username,
-    password: req.body.password,
+    password: md5(req.body.password),
   });
   newUser
     .save()
     .then(() => {
       res.render("secrets.ejs");
+    })
+    .catch((err) => {
+      res.send(err);
+    });
+});
+
+app.post("/login", (req, res) => {
+  const username = req.body.username;
+  const password = md5(req.body.password);
+
+  User.findOne({ email: username })
+    .then((foundUser) => {
+      if (foundUser) {
+        if (foundUser.password === password) {
+          res.render("secrets.ejs");
+        }
+      }
     })
     .catch((err) => {
       res.send(err);
